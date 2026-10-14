@@ -1,77 +1,96 @@
+// -----------------------------------------------------------------------------
+// The `alarm` widget: a content the core renders exactly as sent (the SDK
+// validator, the budget of 8 components and 2 texts), the buttons the
+// configuration allows, the current mode marked by its icon, and the
+// confirmation before disarming.
+// -----------------------------------------------------------------------------
+
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { validateWidgetContent } from '@gladysassistant/integration-sdk';
-import { createFakeGladys } from '@gladysassistant/integration-sdk/testing';
-import { buildDiscoveredDevices } from '../src/devices/index.js';
-import { simulateLanSession } from '../src/devices/plug.js';
-import { DEMO_STATUS_WIDGET, WIDGETS, refreshWidgets } from '../src/widgets.js';
-import { normalizeConfig } from '../src/config.js';
+import { WIDGET_KEY } from '../src/hub.js';
+import { TEXT } from '../src/widgets.js';
+import { eventData } from './helpers/fakeCloud.js';
+import { BASE_CONFIG, createAll, createWorld, settle, systemIds } from './helpers/world.js';
 
-const gladys = createFakeGladys();
-const config = normalizeConfig();
-const demoStatus = WIDGETS[DEMO_STATUS_WIDGET];
+async function content(t, options = {}, settings = {}, language = 'en') {
+  const w = await createWorld(options);
+  t.after(() => w.app.stop());
+  await createAll(w);
+  const get = async () => {
+    const ack = await w.fake.widgetGet(WIDGET_KEY, { settings, language, units: 'metric' });
+    assert.equal(ack.success, true, JSON.stringify(ack));
+    return ack.data.content;
+  };
+  return { w, get };
+}
 
-// What the SDK passes to onWidgetGet, plus the config index.js adds.
-const getContent = (cfg = config) =>
-  demoStatus.get(gladys, { settings: {}, language: 'en', units: 'metric', config: cfg });
+const buttons = (components) => components.filter((c) => c.type === 'button');
 
-test('the demo_status content is rendered exactly as sent', async () => {
-  // [] = nothing the core would drop, truncate or trim to the content budget.
-  assert.deepEqual(validateWidgetContent(await getContent()), []);
-});
+for (const language of ['en', 'fr', 'de', 'es']) {
+  test(`the content is valid as sent, in ${language}`, async (t) => {
+    const { get } = await content(t, {}, {}, language);
+    const components = (await get()).components;
+    assert.deepEqual(validateWidgetContent({ components }), []);
+    assert.ok(components.length <= 8);
+    assert.ok(components.filter((c) => c.type === 'text').length <= 2);
+  });
+}
 
-test('the degraded plug connection content is valid too', async () => {
-  simulateLanSession(false);
-  try {
-    const content = await getContent();
-    assert.deepEqual(validateWidgetContent(content), []);
-    const status = content.components.find((component) => component.type === 'status');
-    assert.ok(
-      status.items.some((item) => item.color === 'warning'),
-      'degraded shows a warning',
-    );
-  } finally {
-    simulateLanSession(true);
-  }
-});
-
-test('the live tiles reference features the integration publishes', async () => {
-  const featureIds = new Set(
-    buildDiscoveredDevices(gladys, config).flatMap((device) =>
-      device.features.map((feature) => feature.external_id),
-    ),
+test('state, base station, power, open entries; three buttons with full control', async (t) => {
+  const { w, get } = await content(t);
+  w.cloud.sensor('825').status.triggered = true;
+  await w.hub.refresh();
+  const { components } = await get();
+  assert.equal(components[0].text, '1234 Main Street');
+  const status = components.find((c) => c.type === 'status');
+  assert.deepEqual(
+    status.items.slice(0, 4).map((item) => [item.label, item.value]),
+    [
+      ['Alarm', 'Disarmed'],
+      ['Base station', 'Online'],
+      ['Power', 'Mains'],
+      ['Open', 'Fire Door'],
+    ],
   );
-  const liveTiles = (await getContent()).components.filter((c) => c.device_feature);
-  assert.ok(liveTiles.length > 0, 'the template demonstrates a device-bound tile');
-  for (const tile of liveTiles) {
-    assert.ok(featureIds.has(tile.device_feature), `unknown feature ${tile.device_feature}`);
-  }
-});
-
-test('every button action of the content is handled and answers a short toast', async () => {
-  const buttons = (await getContent()).components.filter((c) => c.type === 'button' && c.action);
-  assert.ok(buttons.length > 0, 'the template demonstrates a widget action');
-  for (const { action } of buttons) {
-    const message = await demoStatus.action(gladys, {
-      actionKey: action.key,
-      params: action.params ?? {},
-      settings: {},
-      config,
-    });
-    assert.ok(message.en, 'the toast carries at least the mandatory `en` text');
-    assert.ok(message.en.length <= 200, 'toasts are capped at 200 characters');
-  }
-});
-
-test('an unknown widget action fails, so the user sees the error', async () => {
-  await assert.rejects(
-    demoStatus.action(gladys, { actionKey: 'unknown', params: {}, settings: {}, config }),
-    /Unknown widget action/,
+  assert.ok(status.items.some((item) => item.label === 'Alerts' && item.value === 1));
+  const [home, away, off] = buttons(components);
+  assert.deepEqual(
+    [home.action.key, away.action.key, off.action.key],
+    ['arm_home', 'arm_away', 'disarm'],
   );
+  assert.equal(off.action.confirm, true, 'disarming asks first');
+  assert.equal(home.action.params.system, systemIds(w.gladys).device);
+  // The current mode (disarmed) is marked by the icon, never by the style.
+  assert.equal(off.icon, 'check-circle');
+  assert.ok(buttons(components).every((button) => button.style !== 'primary'));
 });
 
-test('refreshWidgets nudges every widget', () => {
-  const fresh = createFakeGladys();
-  refreshWidgets(fresh);
-  assert.deepEqual(fresh.fake.widgetRefreshes, Object.keys(WIDGETS));
+test('the icon follows the mode after an arming', async (t) => {
+  const { w, get } = await content(t);
+  w.socket.push(eventData({ eventCid: 3441, sensorType: 0 }));
+  await settle();
+  const [home] = buttons((await get()).components);
+  assert.equal(home.icon, 'check-circle');
+});
+
+test('"arm only": no disarm button; control off: no button, a caption says why', async (t) => {
+  const arm = await content(t, { config: { ...BASE_CONFIG, alarm_control: 'arm' } });
+  assert.deepEqual(
+    buttons((await arm.get()).components).map((b) => b.action.params.mode),
+    ['home', 'away'],
+  );
+  const off = await content(t, { config: { ...BASE_CONFIG, alarm_control: 'off' } }, {}, 'de');
+  const components = (await off.get()).components;
+  assert.equal(buttons(components).length, 0);
+  assert.equal(components.at(-1).text, TEXT.de.controlOff);
+});
+
+test('not signed in: one sentence saying what to do', async (t) => {
+  const w = await createWorld({ signedIn: false });
+  t.after(() => w.app.stop());
+  const ack = await w.fake.widgetGet(WIDGET_KEY, { settings: {}, language: 'es', units: 'metric' });
+  assert.deepEqual(ack.data.content.components, [
+    { type: 'text', variant: 'body', text: TEXT.es.empty },
+  ]);
 });

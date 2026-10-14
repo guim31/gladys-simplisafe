@@ -31,16 +31,26 @@ pushing.
 ## Architecture
 
 ```
-index.js                          SDK wiring only: handlers registered before connect()
-src/devices/index.js              registry of the device blueprints + dispatch helpers
-src/devices/<type>.js             one device type per file (buildDevice, onPoll, onSetValue...)
-src/scenes.js                     scene action handlers (manifest `scene_actions`)
-src/widgets.js                    dashboard widget handlers (manifest `widgets`)
+index.js                          SDK wiring only (src/app.js), graceful shutdown
+src/app.js                        every SDK handler -> the hub; manifest actions (ACTIONS)
+src/hub.js                        the account: sign-in, timer, reads, WebSocket events, states,
+                                  commands, pictures, connection status, logs
+src/simplisafe/auth.js            OAuth2 + PKCE of the iOS app, sign-in URL, code from a pasted text
+src/simplisafe/client.js          REST API + rotating tokens, error kinds (ERROR_KINDS)
+src/simplisafe/socket.js          WebSocket (identify, ping, reconnect with backoff)
+src/simplisafe/model.js           API answers -> plain objects: systems, sensors, locks, events
+src/simplisafe/http.js            the HTTP seam (fetch); the tests replace it
+src/devices.js                    Gladys devices and feature values, pure functions
+src/image.js                      snapshot addresses, first JPEG of an MJPEG stream, 150 KB limit
+src/scenes.js, src/widgets.js     scene action `set_alarm_mode`, widget `alarm`
+src/texts.js                      every user-facing text, en/fr/de/es
 src/config.js                     DEFAULT_CONFIG (mirrors the manifest defaults) + normalization
-src/weather.js                    example driver (Open-Meteo)
-gladys-assistant-integration.json manifest: name, config_schema, actions, image...
-docs/en.md, docs/fr.md            user documentation, re-hosted by Gladys (mandatory)
-test/                             node --test, against the SDK's fake Gladys (integration-sdk/testing)
+src/store.js                      /data/simplisafe-state.json (refresh token, sign-in verifier…)
+scripts/probe.mjs                 read-only probe of the real cloud (run where the network allows)
+gladys-assistant-integration.json manifest
+docs/{en,fr,de,es}.md             user documentation, same sections (test/i18n.test.js)
+test/                             node --test; fixtures/simplisafe = simplisafe-python answers,
+                                  helpers/fakeCloud.js = fake cloud + WebSocket, helpers/world.js
 .github/scripts/release.mjs       release helpers (manifest bump, changelog), tested in test/
 ```
 
@@ -70,8 +80,10 @@ test/                             node --test, against the SDK's fake Gladys (in
   `type: "provider"`: 5.1.0). `test/manifest.test.js` ties the manifest to the
   code (defaults, action, scene and widget handlers): change both sides
   together.
-- **User-facing text** is bilingual (English and French): action messages,
-  manifest texts, and `docs/en.md` / `docs/fr.md`, kept in sync.
+- **User-facing text** comes in four languages (English, French, German with
+  "du", Spanish with "usted"): action messages, widget, feature and manifest
+  texts, and `docs/en.md`, `fr`, `de`, `es` with the same sections
+  (`test/i18n.test.js` checks it).
 - **Style.** Prettier formats, ESLint catches mistakes. Comments explain why,
   in English. Tests never touch the network.
 
@@ -233,3 +245,44 @@ long, et sur un « Sie »/« Ihr… » de politesse en allemand. Le store exige 
 - Docs `en`, `fr`, `de`, `es` avec les mêmes sections.
 - Chauffe, ouverture, sécurité : ne rien rendre pilotable « comme un thermostat » ou par un assistant
   vocal quand une erreur serait dangereuse (leçon d'OctoPrint).
+
+## SimpliSafe (propre à cette intégration)
+
+- **API non officielle** des applications (`api.simplisafe.com/v1`), sans quota publié. Lu comme
+  simplisafe-python (MIT) et homebridge-simplisafe3 (MIT) ; les fixtures de `test/fixtures/simplisafe`
+  viennent des tests de simplisafe-python (licence recopiée dans leur README).
+- **Connexion** : OAuth2 + PKCE avec le `client_id` public de l'app iOS. Pas de rappel possible :
+  champ `account_link` (bouton Connecter → `onOAuthAuthorizeUrl`, vérifieur PKCE dans `/data`) puis
+  action `finish_sign_in` où l'on colle l'adresse `com.simplisafe.mobile://…?code=`. Le code ne sert
+  qu'une fois ; chaque Connecter tire un nouveau vérifieur. Il faut la **vérification en deux étapes**
+  sur le compte, sinon SimpliSafe ne donne jamais le code (constat Home Assistant).
+- **Jeton de rafraîchissement tournant** : chaque renouvellement en rend un nouveau et invalide
+  l'ancien. Il est écrit aussitôt (`onTokens`), un seul renouvellement à la fois ; deux
+  renouvellements concurrents déconnecteraient le compte. `scripts/probe.mjs` réécrit son fichier de
+  jeton pour la même raison : ne jamais lui donner le jeton d'une intégration en service.
+- Seuls les systèmes **SimpliSafe 3** ont capteurs, serrures et réglages ; un SimpliSafe 2 est ignoré.
+- **États fiables** : ouverture, fumée, CO, fuite, gel (`status.triggered`, lus avec
+  `forceUpdate=true` comme Home Assistant). Mouvement et bris de vitre n'ont **aucun état** dans l'API :
+  impulsion d'une minute sur alarme ou alerte secrète (`1409`). Gel en °F (le front convertit).
+- **Événements WebSocket** : `wss://socketlink.prd.aser.simplisafe.com`, message
+  `com.simplisafe.connection.identify` (jeton + `uid:<userId>`), puis hello / registered / subscribed
+  (`com.simplisafe.service.subscribed` chez simplipy, `…namespace.subscribed` chez homebridge : les deux
+  acceptés). Codes `eventCid` = Contact ID (1110 feu, 1120 panique, 1132/1134 intrusion, 1154 eau,
+  1159 gel, 1162 CO ; 1400/1407 désarmé, 34xx armé, 94xx délai de sortie). Reconnexion après chaque
+  renouvellement de jeton (comme Home Assistant), ce n'est pas un incident : debug seulement.
+- **403** = SimpliSafe bloque un client trop insistant (homebridge) : pause 1 min doublée jusqu'à 2 h.
+  **409** = base en synchronisation : ignoré. **Serrure** : aucune lecture dans les 20 s après un
+  armement si le système a une Smart Lock (bug : la base annonce « serrure ne répond pas »).
+- **Sécurité** : l'état de l'alarme est un `text/select` **toujours en lecture seule** (rien « comme un
+  thermostat », rien à la voix) ; armer passe par le widget ou l'action de scène, selon
+  `alarm_control` (`off` par défaut, `arm`, `full`) ; désarmer depuis le widget demande `confirm`.
+  Déverrouiller la Smart Lock : `allow_unlock`, faux par défaut.
+- **Images** : instantané de l'événement (`snapshot/jpg`, gabarit `{&width}`, 404 tant qu'il n'est pas
+  prêt), image en direct `media.simplisafe.com/v1/<uuid>/mjpg?x=…&fr=1` seulement pour une caméra
+  filaire de 1re génération dont le cache est ouvert dans le mode en cours. Le jeton n'est envoyé qu'à
+  `*.simplisafe.com`. Le premier JPEG d'un flux se découpe par segments (une vignette EXIF contient son
+  propre FF D9).
+- Le nom du système est l'adresse (`street1`) quand le lieu n'a pas de nom : jamais dans les journaux,
+  pas plus que le nom du code (`pinName`).
+- Le `fetch` de Node ignore `HTTPS_PROXY` : derrière un proxy, `NODE_USE_ENV_PROXY=1` (Node 24). Dans
+  la session de code, toutes les adresses SimpliSafe sont refusées par le proxy.
