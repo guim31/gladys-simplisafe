@@ -1,177 +1,749 @@
 {
   "manifest_version": 1,
   "type": "device",
-  "name": "Demo Devices Template",
+  "name": "SimpliSafe",
   "description": {
-    "en": "Starter template showing sensors, a switch, a dimmable light and a smart plug.",
-    "fr": "Template de démarrage : capteurs, interrupteur, lampe variable et prise connectée."
+    "en": "SimpliSafe alarm over the SimpliSafe cloud: arming, sensors, Smart Lock, cameras, doorbell.",
+    "fr": "Alarme SimpliSafe via le cloud SimpliSafe : armement, capteurs, Smart Lock, caméras, sonnette.",
+    "de": "SimpliSafe-Alarmanlage über die Cloud: Scharfschalten, Sensoren, Smart Lock, Kameras, Klingel.",
+    "es": "Alarma SimpliSafe por la nube SimpliSafe: armado, sensores, Smart Lock, cámaras, timbre."
   },
   "version": "1.0.0",
-  "docker_image": "ghcr.io/gladysassistant/integration-template-js:1.0.0",
+  "docker_image": "ghcr.io/guim31/gladys-simplisafe:1.0.0",
   "gladys_version": ">=5.1.0",
-  "cover_image": "https://raw.githubusercontent.com/GladysAssistant/integration-template-js/master/cover.png",
-  "categories": ["lighting", "security", "environment"],
-  "transports": ["local", "cloud"],
+  "cover_image": "https://raw.githubusercontent.com/guim31/gladys-simplisafe/main/cover.png",
+  "categories": ["security"],
+  "transports": ["cloud"],
   "config_schema": [
     {
       "key": "intro",
       "type": "section",
-      "label": { "en": "Getting started", "fr": "Pour commencer" },
+      "label": {
+        "en": "Before you start",
+        "fr": "Avant de commencer",
+        "de": "Bevor du loslegst",
+        "es": "Antes de empezar"
+      },
       "description": {
-        "en": "The demo weather station reads real data from the free Open-Meteo API: pick the coordinates to observe. No account, no API key.",
-        "fr": "La station météo de démonstration lit de vraies données via l'API gratuite Open-Meteo : choisissez les coordonnées à observer. Pas de compte, pas de clé d'API."
+        "en": "This integration signs in to your SimpliSafe account like the app and follows your SimpliSafe 3 system: alarm state, sensors, Smart Lock, cameras and doorbell, in real time. The account must have two-step verification turned on (SimpliSafe app, Settings). Developed without the hardware: feedback welcome. Not affiliated with SimpliSafe.",
+        "fr": "Cette intégration se connecte à votre compte SimpliSafe comme l'application et suit votre système SimpliSafe 3 : état de l'alarme, capteurs, Smart Lock, caméras et sonnette, en temps réel. La vérification en deux étapes doit être activée sur le compte (application SimpliSafe, Réglages). Développée sans le matériel : retours bienvenus. Sans lien avec SimpliSafe.",
+        "de": "Diese Integration meldet sich wie die App bei deinem SimpliSafe-Konto an und verfolgt dein SimpliSafe-3-System in Echtzeit: Alarmstatus, Sensoren, Smart Lock, Kameras und Türklingel. Im Konto muss die Bestätigung in zwei Schritten aktiviert sein (SimpliSafe-App, Einstellungen). Ohne die Hardware entwickelt: Rückmeldungen willkommen. Nicht mit SimpliSafe verbunden.",
+        "es": "Esta integración inicia sesión en su cuenta SimpliSafe como la aplicación y sigue su sistema SimpliSafe 3 en tiempo real: estado de la alarma, sensores, Smart Lock, cámaras y timbre. La cuenta debe tener activada la verificación en dos pasos (aplicación SimpliSafe, Ajustes). Desarrollada sin el hardware: se agradecen sus comentarios. Sin relación con SimpliSafe."
       },
       "links": [
         {
-          "url": "https://open-meteo.com/en/docs",
-          "label": { "en": "Open-Meteo documentation", "fr": "Documentation Open-Meteo" }
+          "url": "https://github.com/guim31/gladys-simplisafe/blob/main/docs/en.md",
+          "label": {
+            "en": "Step-by-step guide",
+            "fr": "Guide pas à pas",
+            "de": "Schritt-für-Schritt-Anleitung",
+            "es": "Guía paso a paso"
+          }
         }
       ]
     },
     {
-      "key": "latitude",
-      "type": "number",
-      "label": { "en": "Latitude", "fr": "Latitude" },
-      "description": {
-        "en": "Latitude used for the demo weather sensor.",
-        "fr": "Latitude utilisée par le capteur météo de démonstration."
+      "key": "sign_in",
+      "type": "section",
+      "label": {
+        "en": "Sign in",
+        "fr": "Connexion",
+        "de": "Anmeldung",
+        "es": "Inicio de sesión"
       },
-      "placeholder": { "en": "e.g. 48.8566", "fr": "ex. 48.8566" },
-      "required": true,
-      "default": 48.8566,
-      "min": -90,
-      "max": 90
-    },
-    {
-      "key": "longitude",
-      "type": "number",
-      "label": { "en": "Longitude", "fr": "Longitude" },
       "description": {
-        "en": "Longitude used for the demo weather sensor.",
-        "fr": "Longitude utilisée par le capteur météo de démonstration."
+        "en": "On a computer, preferably in Chrome or Edge:\n1. Click Connect: the SimpliSafe sign-in page opens in a new tab. In that tab, open the developer tools (F12, or Cmd+Option+I on a Mac) on the Console tab.\n2. Sign in with the e-mail address and password of the SimpliSafe app, then confirm the sign-in (code or link sent by e-mail or SMS).\n3. The page then seems to do nothing: that is expected. In the console, a red line mentions an address starting with com.simplisafe.mobile:// and containing code=. Copy that address.\n4. Within a few minutes, paste it in the “Finish the sign-in” action at the bottom of this page.\nGladys never sees your password. Nothing in the console? Open the Network tab before signing in, or see the guide.",
+        "fr": "Sur un ordinateur, de préférence dans Chrome ou Edge :\n1. Cliquez sur Connecter : la page de connexion SimpliSafe s'ouvre dans un nouvel onglet. Dans cet onglet, ouvrez les outils de développement (F12, ou Cmd+Option+I sur Mac), onglet Console.\n2. Connectez-vous avec l'adresse e-mail et le mot de passe de l'application SimpliSafe, puis confirmez la connexion (code ou lien envoyé par e-mail ou SMS).\n3. La page semble ensuite ne rien faire : c'est normal. Dans la console, une ligne rouge cite une adresse qui commence par com.simplisafe.mobile:// et contient code=. Copiez cette adresse.\n4. Dans les minutes qui suivent, collez-la dans l'action « Terminer la connexion » en bas de cette page.\nGladys ne voit jamais votre mot de passe. Rien dans la console ? Ouvrez l'onglet Réseau avant de vous connecter, ou consultez le guide.",
+        "de": "Am Computer, am besten in Chrome oder Edge:\n1. Klicke auf Verbinden: Die SimpliSafe-Anmeldeseite öffnet sich in einem neuen Tab. Öffne in diesem Tab die Entwicklertools (F12, oder Cmd+Option+I auf dem Mac), Reiter Konsole.\n2. Melde dich mit der E-Mail-Adresse und dem Passwort der SimpliSafe-App an und bestätige die Anmeldung (Code oder Link per E-Mail oder SMS).\n3. Die Seite scheint danach nichts zu tun: Das ist normal. In der Konsole nennt eine rote Zeile eine Adresse, die mit com.simplisafe.mobile:// beginnt und code= enthält. Kopiere diese Adresse.\n4. Füge sie innerhalb weniger Minuten in die Aktion „Anmeldung abschließen“ unten auf dieser Seite ein.\nGladys sieht dein Passwort nie. Nichts in der Konsole? Öffne vor der Anmeldung den Reiter Netzwerk, oder sieh in die Anleitung.",
+        "es": "En un ordenador, preferiblemente en Chrome o Edge:\n1. Pulse Conectar: la página de inicio de sesión de SimpliSafe se abre en una pestaña nueva. En esa pestaña, abra las herramientas de desarrollo (F12, o Cmd+Option+I en Mac), pestaña Consola.\n2. Inicie sesión con el correo y la contraseña de la aplicación SimpliSafe y confirme el inicio de sesión (código o enlace enviado por correo o SMS).\n3. Después la página parece no hacer nada: es normal. En la consola, una línea roja cita una dirección que empieza por com.simplisafe.mobile:// y contiene code=. Copie esa dirección.\n4. En los minutos siguientes, péguela en la acción «Terminar el inicio de sesión» al final de esta página.\nGladys nunca ve su contraseña. ¿Nada en la consola? Abra la pestaña Red antes de iniciar sesión, o consulte la guía."
       },
-      "placeholder": { "en": "e.g. 2.3522", "fr": "ex. 2.3522" },
-      "required": true,
-      "default": 2.3522,
-      "min": -180,
-      "max": 180
-    },
-    {
-      "key": "unit",
-      "type": "select",
-      "label": { "en": "Temperature unit", "fr": "Unité de température" },
-      "required": false,
-      "default": "celsius",
-      "options": [
-        { "value": "celsius", "label": { "en": "Celsius", "fr": "Celsius" } },
-        { "value": "fahrenheit", "label": { "en": "Fahrenheit", "fr": "Fahrenheit" } }
+      "links": [
+        {
+          "url": "https://github.com/guim31/gladys-simplisafe/blob/main/docs/en.md#sign-in",
+          "label": {
+            "en": "Where to find the address",
+            "fr": "Où trouver l'adresse",
+            "de": "Wo du die Adresse findest",
+            "es": "Dónde encontrar la dirección"
+          }
+        }
       ]
     },
     {
-      "key": "poll_frequency",
-      "type": "number",
-      "label": { "en": "Refresh interval (s)", "fr": "Intervalle de rafraîchissement (s)" },
+      "key": "simplisafe_account",
+      "type": "account_link",
+      "label": {
+        "en": "SimpliSafe account",
+        "fr": "Compte SimpliSafe",
+        "de": "SimpliSafe-Konto",
+        "es": "Cuenta SimpliSafe"
+      }
+    },
+    {
+      "key": "alarm_control",
+      "type": "select",
+      "label": {
+        "en": "Arming from Gladys",
+        "fr": "Armement depuis Gladys",
+        "de": "Scharfschalten über Gladys",
+        "es": "Armado desde Gladys"
+      },
       "description": {
-        "en": "How often sensors are polled, in seconds (one minute minimum).",
-        "fr": "Fréquence d'interrogation des capteurs, en secondes (une minute minimum)."
+        "en": "Off: Gladys shows the state of the alarm, never changes it. Arm only: the widget and the scenes can arm (home, away). Arm and disarm: anyone using your Gladys dashboards and scenes can also disarm. Never like a switch, nor by voice.",
+        "fr": "Désactivé : Gladys affiche l'état de l'alarme sans jamais le changer. Armer seulement : le widget et les scènes peuvent armer (maison, absent). Armer et désarmer : quiconque utilise vos tableaux de bord et scènes peut aussi désarmer. Jamais à la voix.",
+        "de": "Aus: Gladys zeigt den Alarmstatus an und ändert ihn nie. Nur scharf: Widget und Szenen können scharf schalten (zu Hause, abwesend). Scharf und unscharf: Wer deine Dashboards und Szenen nutzt, kann auch unscharf schalten. Nie per Sprache.",
+        "es": "Desactivado: Gladys muestra el estado de la alarma sin cambiarlo nunca. Solo armar: el widget y las escenas pueden armar (en casa, ausente). Armar y desarmar: quien use sus paneles y escenas también puede desarmar. Nunca por voz."
       },
       "required": false,
-      "default": 300,
-      "min": 60,
-      "max": 3600
+      "default": "off",
+      "options": [
+        {
+          "value": "off",
+          "label": {
+            "en": "Off (state only)",
+            "fr": "Désactivé (état seul)",
+            "de": "Aus (nur Status)",
+            "es": "Desactivado (solo estado)"
+          }
+        },
+        {
+          "value": "arm",
+          "label": {
+            "en": "Arm only",
+            "fr": "Armer seulement",
+            "de": "Nur scharf schalten",
+            "es": "Solo armar"
+          }
+        },
+        {
+          "value": "full",
+          "label": {
+            "en": "Arm and disarm",
+            "fr": "Armer et désarmer",
+            "de": "Scharf und unscharf schalten",
+            "es": "Armar y desarmar"
+          }
+        }
+      ]
+    },
+    {
+      "key": "allow_unlock",
+      "type": "boolean",
+      "label": {
+        "en": "Allow unlocking the Smart Lock",
+        "fr": "Autoriser le déverrouillage de la Smart Lock",
+        "de": "Entriegeln des Smart Lock erlauben",
+        "es": "Permitir desbloquear la Smart Lock"
+      },
+      "description": {
+        "en": "Off: Gladys can lock the door, never unlock it. On: anyone using your Gladys dashboards and scenes can open it.",
+        "fr": "Désactivé : Gladys peut verrouiller la porte, jamais la déverrouiller. Activé : quiconque utilise vos tableaux de bord et scènes peut l'ouvrir.",
+        "de": "Aus: Gladys kann die Tür verriegeln, nie entriegeln. An: Wer deine Dashboards und Szenen nutzt, kann sie öffnen.",
+        "es": "Desactivado: Gladys puede cerrar la puerta, nunca abrirla. Activado: quien use sus paneles y escenas puede abrirla."
+      },
+      "required": false,
+      "default": false
+    },
+    {
+      "key": "refresh_interval",
+      "type": "select",
+      "label": {
+        "en": "Sensor reading",
+        "fr": "Lecture des capteurs",
+        "de": "Abfrage der Sensoren",
+        "es": "Lectura de sensores"
+      },
+      "description": {
+        "en": "How often the systems, sensors and locks are read. Arming, alarms, the doorbell and the locks arrive in real time anyway.",
+        "fr": "Fréquence de lecture des systèmes, capteurs et serrures. L'armement, les alarmes, la sonnette et les serrures arrivent de toute façon en temps réel.",
+        "de": "Wie oft Systeme, Sensoren und Schlösser gelesen werden. Scharfschalten, Alarme, Türklingel und Schlösser kommen ohnehin in Echtzeit.",
+        "es": "Frecuencia de lectura de sistemas, sensores y cerraduras. El armado, las alarmas, el timbre y las cerraduras llegan en tiempo real de todos modos."
+      },
+      "required": false,
+      "default": "60",
+      "options": [
+        {
+          "value": "30",
+          "label": {
+            "en": "Every 30 seconds",
+            "fr": "Toutes les 30 secondes",
+            "de": "Alle 30 Sekunden",
+            "es": "Cada 30 segundos"
+          }
+        },
+        {
+          "value": "60",
+          "label": {
+            "en": "Every minute",
+            "fr": "Toutes les minutes",
+            "de": "Jede Minute",
+            "es": "Cada minuto"
+          }
+        },
+        {
+          "value": "120",
+          "label": {
+            "en": "Every 2 minutes",
+            "fr": "Toutes les 2 minutes",
+            "de": "Alle 2 Minuten",
+            "es": "Cada 2 minutos"
+          }
+        },
+        {
+          "value": "300",
+          "label": {
+            "en": "Every 5 minutes",
+            "fr": "Toutes les 5 minutes",
+            "de": "Alle 5 Minuten",
+            "es": "Cada 5 minutos"
+          }
+        }
+      ]
+    },
+    {
+      "key": "language",
+      "type": "select",
+      "label": {
+        "en": "Language of the device names",
+        "fr": "Langue des noms d'appareils",
+        "de": "Sprache der Gerätenamen",
+        "es": "Idioma de los nombres"
+      },
+      "description": {
+        "en": "Gladys keeps the names chosen when a device is added.",
+        "fr": "Gladys garde les noms choisis à l'ajout d'un appareil.",
+        "de": "Gladys behält die Namen, die beim Hinzufügen eines Geräts gewählt wurden.",
+        "es": "Gladys conserva los nombres elegidos al añadir un dispositivo."
+      },
+      "required": false,
+      "default": "fr",
+      "options": [
+        {
+          "value": "en",
+          "label": {
+            "en": "English",
+            "fr": "English",
+            "de": "English",
+            "es": "English"
+          }
+        },
+        {
+          "value": "fr",
+          "label": {
+            "en": "Français",
+            "fr": "Français",
+            "de": "Français",
+            "es": "Français"
+          }
+        },
+        {
+          "value": "de",
+          "label": {
+            "en": "Deutsch",
+            "fr": "Deutsch",
+            "de": "Deutsch",
+            "es": "Deutsch"
+          }
+        },
+        {
+          "value": "es",
+          "label": {
+            "en": "Español",
+            "fr": "Español",
+            "de": "Español",
+            "es": "Español"
+          }
+        }
+      ]
     }
   ],
   "actions": [
     {
-      "key": "test_weather",
-      "label": { "en": "Test the weather provider", "fr": "Tester le fournisseur météo" },
-      "timeout_seconds": 30
-    },
-    {
-      "key": "identify",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
+      "key": "finish_sign_in",
+      "label": {
+        "en": "Finish the sign-in",
+        "fr": "Terminer la connexion",
+        "de": "Anmeldung abschließen",
+        "es": "Terminar el inicio de sesión"
+      },
+      "description": {
+        "en": "Paste the com.simplisafe.mobile://… address (or the code alone) copied after signing in.",
+        "fr": "Collez l'adresse com.simplisafe.mobile://… (ou le code seul) copiée après la connexion.",
+        "de": "Füge die nach der Anmeldung kopierte Adresse com.simplisafe.mobile://… (oder nur den Code) ein.",
+        "es": "Pegue la dirección com.simplisafe.mobile://… (o solo el código) copiada tras iniciar sesión."
+      },
+      "timeout_seconds": 60,
       "fields": [
         {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
+          "key": "address",
+          "type": "string",
+          "label": {
+            "en": "Address or code",
+            "fr": "Adresse ou code",
+            "de": "Adresse oder Code",
+            "es": "Dirección o código"
+          },
+          "placeholder": {
+            "en": "com.simplisafe.mobile://…?code=…",
+            "fr": "com.simplisafe.mobile://…?code=…",
+            "de": "com.simplisafe.mobile://…?code=…",
+            "es": "com.simplisafe.mobile://…?code=…"
+          },
           "required": true
         }
       ]
+    },
+    {
+      "key": "test_connection",
+      "label": {
+        "en": "Test the connection",
+        "fr": "Tester la connexion",
+        "de": "Verbindung testen",
+        "es": "Probar la conexión"
+      },
+      "description": {
+        "en": "Lists the systems of the account. Nothing is armed or disarmed.",
+        "fr": "Liste les systèmes du compte. Rien n'est armé ni désarmé.",
+        "de": "Listet die Systeme des Kontos auf. Nichts wird scharf oder unscharf geschaltet.",
+        "es": "Muestra los sistemas de la cuenta. No se arma ni se desarma nada."
+      },
+      "timeout_seconds": 60
+    },
+    {
+      "key": "sign_out",
+      "label": {
+        "en": "Sign out",
+        "fr": "Se déconnecter",
+        "de": "Abmelden",
+        "es": "Cerrar sesión"
+      },
+      "description": {
+        "en": "Deletes the tokens stored by Gladys. The devices stay, without new readings.",
+        "fr": "Supprime les jetons enregistrés par Gladys. Les appareils restent, sans nouveau relevé.",
+        "de": "Löscht die von Gladys gespeicherten Token. Die Geräte bleiben, ohne neue Werte.",
+        "es": "Borra los tokens guardados por Gladys. Los dispositivos se mantienen, sin nuevas lecturas."
+      },
+      "timeout_seconds": 30
     }
   ],
   "scene_triggers": [
     {
-      "key": "motion_detected",
-      "label": { "en": "Motion detected", "fr": "Mouvement détecté" },
+      "key": "alarm_triggered",
+      "label": {
+        "en": "SimpliSafe alarm triggered",
+        "fr": "Alarme SimpliSafe déclenchée",
+        "de": "SimpliSafe-Alarm ausgelöst",
+        "es": "Alarma SimpliSafe disparada"
+      },
       "description": {
-        "en": "A demo motion sensor saw a person or an animal move.",
-        "fr": "Un détecteur de démonstration a vu bouger une personne ou un animal."
+        "en": "The alarm of a SimpliSafe system went off: burglary, fire, carbon monoxide, water, freeze or panic.",
+        "fr": "L'alarme d'un système SimpliSafe s'est déclenchée : intrusion, incendie, monoxyde de carbone, eau, gel ou panique.",
+        "de": "Der Alarm eines SimpliSafe-Systems wurde ausgelöst: Einbruch, Feuer, Kohlenmonoxid, Wasser, Frost oder Panik.",
+        "es": "La alarma de un sistema SimpliSafe se disparó: intrusión, incendio, monóxido de carbono, agua, helada o pánico."
       },
       "fields": [
         {
-          "key": "device",
+          "key": "system",
           "type": "select",
           "source": "devices",
-          "label": { "en": "Sensor", "fr": "Détecteur" }
+          "label": {
+            "en": "System (empty: any)",
+            "fr": "Système (vide : tous)",
+            "de": "System (leer: alle)",
+            "es": "Sistema (vacío: todos)"
+          }
         },
         {
-          "key": "target",
+          "key": "kind",
           "type": "multi_select",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" },
+          "label": {
+            "en": "Kind of alarm (empty: any)",
+            "fr": "Type d'alarme (vide : tous)",
+            "de": "Art des Alarms (leer: alle)",
+            "es": "Tipo de alarma (vacío: todos)"
+          },
           "options": [
-            { "value": "person", "label": { "en": "Person", "fr": "Personne" } },
-            { "value": "animal", "label": { "en": "Animal", "fr": "Animal" } }
+            {
+              "value": "burglary",
+              "label": {
+                "en": "Burglary",
+                "fr": "Intrusion",
+                "de": "Einbruch",
+                "es": "Intrusión"
+              }
+            },
+            {
+              "value": "fire",
+              "label": {
+                "en": "Fire",
+                "fr": "Incendie",
+                "de": "Feuer",
+                "es": "Incendio"
+              }
+            },
+            {
+              "value": "co",
+              "label": {
+                "en": "Carbon monoxide",
+                "fr": "Monoxyde de carbone",
+                "de": "Kohlenmonoxid",
+                "es": "Monóxido de carbono"
+              }
+            },
+            {
+              "value": "water",
+              "label": {
+                "en": "Water",
+                "fr": "Eau",
+                "de": "Wasser",
+                "es": "Agua"
+              }
+            },
+            {
+              "value": "freeze",
+              "label": {
+                "en": "Freeze",
+                "fr": "Gel",
+                "de": "Frost",
+                "es": "Helada"
+              }
+            },
+            {
+              "value": "panic",
+              "label": {
+                "en": "Panic",
+                "fr": "Panique",
+                "de": "Panik",
+                "es": "Pánico"
+              }
+            }
           ]
         }
       ],
       "variables": [
         {
-          "key": "target",
+          "key": "kind",
           "type": "string",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" }
+          "label": {
+            "en": "Kind of alarm",
+            "fr": "Type d'alarme",
+            "de": "Art des Alarms",
+            "es": "Tipo de alarma"
+          }
+        },
+        {
+          "key": "sensor_name",
+          "type": "string",
+          "label": {
+            "en": "Sensor",
+            "fr": "Capteur",
+            "de": "Sensor",
+            "es": "Sensor"
+          }
+        }
+      ]
+    },
+    {
+      "key": "alarm_mode_changed",
+      "label": {
+        "en": "SimpliSafe armed or disarmed",
+        "fr": "SimpliSafe armée ou désarmée",
+        "de": "SimpliSafe scharf oder unscharf",
+        "es": "SimpliSafe armada o desarmada"
+      },
+      "description": {
+        "en": "A SimpliSafe system was armed or disarmed, from the app, a keypad or a key fob, with the name of the PIN when SimpliSafe gives it.",
+        "fr": "Un système SimpliSafe a été armé ou désarmé, depuis l'application, un clavier ou une télécommande, avec le nom du code quand SimpliSafe le donne.",
+        "de": "Ein SimpliSafe-System wurde scharf oder unscharf geschaltet, per App, Tastenfeld oder Fernbedienung, mit dem Namen der PIN, wenn SimpliSafe ihn nennt.",
+        "es": "Un sistema SimpliSafe se armó o desarmó, desde la aplicación, un teclado o un mando, con el nombre del PIN cuando SimpliSafe lo indica."
+      },
+      "fields": [
+        {
+          "key": "system",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "System (empty: any)",
+            "fr": "Système (vide : tous)",
+            "de": "System (leer: alle)",
+            "es": "Sistema (vacío: todos)"
+          }
+        },
+        {
+          "key": "mode",
+          "type": "multi_select",
+          "label": {
+            "en": "New mode (empty: any)",
+            "fr": "Nouveau mode (vide : tous)",
+            "de": "Neuer Modus (leer: alle)",
+            "es": "Nuevo modo (vacío: todos)"
+          },
+          "options": [
+            {
+              "value": "off",
+              "label": {
+                "en": "Disarmed",
+                "fr": "Désarmée",
+                "de": "Unscharf",
+                "es": "Desarmada"
+              }
+            },
+            {
+              "value": "home",
+              "label": {
+                "en": "Armed home",
+                "fr": "Armée (maison)",
+                "de": "Scharf (zu Hause)",
+                "es": "Armada (en casa)"
+              }
+            },
+            {
+              "value": "away",
+              "label": {
+                "en": "Armed away",
+                "fr": "Armée (absent)",
+                "de": "Scharf (abwesend)",
+                "es": "Armada (ausente)"
+              }
+            }
+          ]
+        },
+        {
+          "key": "source",
+          "type": "multi_select",
+          "label": {
+            "en": "From (empty: anywhere)",
+            "fr": "Depuis (vide : partout)",
+            "de": "Von (leer: überall)",
+            "es": "Desde (vacío: cualquiera)"
+          },
+          "options": [
+            {
+              "value": "app",
+              "label": {
+                "en": "App, website or Gladys",
+                "fr": "Application, site ou Gladys",
+                "de": "App, Website oder Gladys",
+                "es": "Aplicación, web o Gladys"
+              }
+            },
+            {
+              "value": "keypad",
+              "label": {
+                "en": "Keypad",
+                "fr": "Clavier",
+                "de": "Tastenfeld",
+                "es": "Teclado"
+              }
+            },
+            {
+              "value": "keychain",
+              "label": {
+                "en": "Key fob",
+                "fr": "Télécommande",
+                "de": "Fernbedienung",
+                "es": "Mando"
+              }
+            },
+            {
+              "value": "other",
+              "label": {
+                "en": "Other",
+                "fr": "Autre",
+                "de": "Andere",
+                "es": "Otro"
+              }
+            }
+          ]
+        }
+      ],
+      "variables": [
+        {
+          "key": "mode",
+          "type": "string",
+          "label": {
+            "en": "New mode",
+            "fr": "Nouveau mode",
+            "de": "Neuer Modus",
+            "es": "Nuevo modo"
+          }
+        },
+        {
+          "key": "source",
+          "type": "string",
+          "label": {
+            "en": "From",
+            "fr": "Depuis",
+            "de": "Von",
+            "es": "Desde"
+          }
+        },
+        {
+          "key": "changed_by",
+          "type": "string",
+          "label": {
+            "en": "Name of the PIN",
+            "fr": "Nom du code",
+            "de": "Name der PIN",
+            "es": "Nombre del PIN"
+          }
+        }
+      ]
+    },
+    {
+      "key": "doorbell_pressed",
+      "label": {
+        "en": "SimpliSafe doorbell pressed",
+        "fr": "Sonnette SimpliSafe pressée",
+        "de": "SimpliSafe-Türklingel gedrückt",
+        "es": "Timbre SimpliSafe pulsado"
+      },
+      "description": {
+        "en": "Someone pressed the button of a SimpliSafe Video Doorbell. The camera image is the picture of the ring when SimpliSafe gives one.",
+        "fr": "Quelqu'un a appuyé sur le bouton d'une sonnette vidéo SimpliSafe. L'image de la caméra est celle de la sonnerie quand SimpliSafe la donne.",
+        "de": "Jemand hat den Knopf einer SimpliSafe-Video-Türklingel gedrückt. Das Kamerabild ist das Bild des Klingelns, wenn SimpliSafe eines liefert.",
+        "es": "Alguien pulsó el botón de un timbre con vídeo SimpliSafe. La imagen de la cámara es la del timbrazo cuando SimpliSafe la proporciona."
+      },
+      "fields": [
+        {
+          "key": "camera",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "Doorbell (empty: any)",
+            "fr": "Sonnette (vide : toutes)",
+            "de": "Türklingel (leer: alle)",
+            "es": "Timbre (vacío: todos)"
+          }
+        }
+      ],
+      "variables": [
+        {
+          "key": "camera_name",
+          "type": "string",
+          "label": {
+            "en": "Doorbell",
+            "fr": "Sonnette",
+            "de": "Türklingel",
+            "es": "Timbre"
+          }
         }
       ]
     }
   ],
   "scene_actions": [
     {
-      "key": "identify_device",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "description": {
-        "en": "Make a device signal itself (the demo light blinks).",
-        "fr": "Fait se signaler un appareil (la lampe de démonstration clignote)."
+      "key": "set_alarm_mode",
+      "label": {
+        "en": "Arm or disarm SimpliSafe",
+        "fr": "Armer ou désarmer SimpliSafe",
+        "de": "SimpliSafe scharf oder unscharf schalten",
+        "es": "Armar o desarmar SimpliSafe"
       },
-      "timeout_seconds": 15,
+      "description": {
+        "en": "Arms (home, away) or disarms a SimpliSafe system, as far as “Arming from Gladys” allows in the configuration.",
+        "fr": "Arme (maison, absent) ou désarme un système SimpliSafe, dans la limite de « Armement depuis Gladys » de la configuration.",
+        "de": "Schaltet ein SimpliSafe-System scharf (zu Hause, abwesend) oder unscharf, soweit „Scharfschalten über Gladys“ es erlaubt.",
+        "es": "Arma (en casa, ausente) o desarma un sistema SimpliSafe, en la medida en que lo permita «Armado desde Gladys»."
+      },
+      "timeout_seconds": 30,
       "fields": [
         {
-          "key": "device",
+          "key": "system",
           "type": "select",
           "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
+          "label": {
+            "en": "System (empty: the only one)",
+            "fr": "Système (vide : le seul)",
+            "de": "System (leer: das einzige)",
+            "es": "Sistema (vacío: el único)"
+          }
+        },
+        {
+          "key": "mode",
+          "type": "select",
+          "required": true,
+          "label": {
+            "en": "Mode",
+            "fr": "Mode",
+            "de": "Modus",
+            "es": "Modo"
+          },
+          "options": [
+            {
+              "value": "off",
+              "label": {
+                "en": "Disarmed",
+                "fr": "Désarmée",
+                "de": "Unscharf",
+                "es": "Desarmada"
+              }
+            },
+            {
+              "value": "home",
+              "label": {
+                "en": "Armed home",
+                "fr": "Armée (maison)",
+                "de": "Scharf (zu Hause)",
+                "es": "Armada (en casa)"
+              }
+            },
+            {
+              "value": "away",
+              "label": {
+                "en": "Armed away",
+                "fr": "Armée (absent)",
+                "de": "Scharf (abwesend)",
+                "es": "Armada (ausente)"
+              }
+            }
+          ]
         }
       ],
       "outputs": [
         {
-          "key": "signalled",
-          "type": "boolean",
-          "label": { "en": "Device signalled", "fr": "Appareil signalé" }
+          "key": "state",
+          "type": "string",
+          "label": {
+            "en": "State after the command",
+            "fr": "État après la commande",
+            "de": "Status nach dem Befehl",
+            "es": "Estado tras la orden"
+          }
         }
       ]
     }
   ],
   "widgets": [
     {
-      "key": "demo_status",
-      "label": { "en": "Demo status", "fr": "État de la démo" },
-      "description": {
-        "en": "Live temperature and plug power, plug connection and observed location.",
-        "fr": "Température et puissance en direct, connexion de la prise, position observée."
+      "key": "alarm",
+      "label": {
+        "en": "SimpliSafe alarm",
+        "fr": "Alarme SimpliSafe",
+        "de": "SimpliSafe-Alarm",
+        "es": "Alarma SimpliSafe"
       },
-      "icon": "activity",
-      "action_timeout_seconds": 15
+      "description": {
+        "en": "Alarm state, open entries, batteries, power and the arming buttons allowed.",
+        "fr": "État de l'alarme, ouvertures, piles, alimentation et boutons d'armement autorisés.",
+        "de": "Alarmstatus, offene Eingänge, Batterien, Strom und die erlaubten Scharfschalt-Knöpfe.",
+        "es": "Estado de la alarma, aperturas, baterías, alimentación y botones de armado permitidos."
+      },
+      "icon": "shield",
+      "action_timeout_seconds": 30,
+      "settings": [
+        {
+          "key": "system",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "System (empty: the only one)",
+            "fr": "Système (vide : le seul)",
+            "de": "System (leer: das einzige)",
+            "es": "Sistema (vacío: el único)"
+          }
+        }
+      ]
     }
   ]
 }

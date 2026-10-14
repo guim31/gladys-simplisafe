@@ -1,0 +1,8 @@
+{
+  "access_token": "abcde12345",
+  "refresh_token": "qrstu98765",
+  "id_token": "vwxyz00000",
+  "scope": "openid email https://api.simplisafe.com/scopes/user:platform offline_access",
+  "expires_in": 3600,
+  "token_type": "Bearer"
+}
