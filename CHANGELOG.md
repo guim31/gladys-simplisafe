@@ -10,6 +10,8 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-14
+
 ### Added
 
 - Sign-in to the SimpliSafe account from the Configuration screen: "Connect"
@@ -34,3 +36,6 @@ the notes of the version's GitHub Release.
   configuration allows.
 - "Arming from Gladys": off (default), arm only, or arm and disarm.
 - English, French, German and Spanish.
+
+[Unreleased]: https://github.com/guim31/gladys-simplisafe/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/guim31/gladys-simplisafe/releases/tag/v1.0.1

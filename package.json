@@ -1,6 +1,6 @@
 {
   "name": "gladys-simplisafe",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Gladys Assistant integration for SimpliSafe home security systems: alarm, sensors, Smart Lock and cameras.",
   "type": "module",
