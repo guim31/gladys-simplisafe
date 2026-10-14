@@ -421,11 +421,13 @@ export class SimpliSafeHub {
       logger.debug('Reads paused (SimpliSafe refused the last ones)');
       return false;
     }
+    const before = this.widgetSignature();
     const ok = await this.read({ all: false });
     if (ok) {
       await this.publishDevicesIfChanged();
       await this.publishAllStates();
-      this.nudgeWidget();
+      // The widget is pulled again only when what it shows changed.
+      if (this.widgetSignature() !== before) this.nudgeWidget();
     }
     await this.publishConnection();
     return ok;
@@ -1248,6 +1250,15 @@ export class SimpliSafeHub {
   }
 
   // --- Widget ------------------------------------------------------------------
+
+  /** A fingerprint of what the widget shows, every system and language alike. */
+  widgetSignature() {
+    return JSON.stringify(
+      [...this.systems.values()].map((entry) =>
+        this.view(systemIds(this.gladys, entry.system.serial).device),
+      ),
+    );
+  }
 
   /** What the widget shows of a system (null when there is none to show). */
   view(systemExternalId, language = this.language) {

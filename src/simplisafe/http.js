@@ -4,7 +4,7 @@
 // test/helpers/fakeCloud.js; nothing else in the code touches the network.
 //
 //   request({ method, url, headers, json, timeoutMs, maxBytes, firstJpeg })
-//     → { status, body: Buffer }
+//     → { status, headers, body: Buffer }
 //
 // `json` is sent as application/json. `firstJpeg` stops reading as soon as a
 // complete JPEG picture arrived (the live view of a camera is an endless
@@ -80,6 +80,7 @@ export async function httpRequest({
     try {
       return {
         status: response.status,
+        headers: Object.fromEntries(response.headers),
         body: await readBody(response, { maxBytes, firstJpeg, controller }),
       };
     } catch (err) {

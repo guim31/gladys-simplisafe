@@ -1,61 +1,233 @@
-# Demo Devices Template
+# SimpliSafe
 
-This is the user documentation of the integration. Gladys re-hosts this file
-and shows a permanent **Documentation** link to it in the Configuration screen
-(in the user's language, with English as the fallback) — it is when
-configuring that the user needs it most. Keep the short onboarding hints in
-the `section` blocks of the manifest `config_schema`; put the long
-step-by-step (screenshots, troubleshooting…) here.
+Brings your **SimpliSafe alarm** into Gladys, through the **SimpliSafe cloud**
+(the one the SimpliSafe app uses): the state of the alarm (disarmed, armed home,
+armed away, exit and entry delays, alarm), the base station (online, mains
+power, backup battery, alerts), every sensor (entry, motion, glass break, smoke,
+carbon monoxide, water, freeze, keypad, panic button, siren: detection, low
+battery, online), the **Smart Lock**, and the **SimpliCam**, outdoor camera and
+**Video Doorbell Pro** (picture of the last motion or ring, doorbell). Arming,
+alarms, the doorbell and the locks arrive **in real time** through the
+WebSocket the app uses.
 
-## What you get
+> **Developed without the hardware: feedback welcome.** This integration was
+> written from the work of the Home Assistant `simplisafe` integration, of the
+> simplisafe-python library and of homebridge-simplisafe3, without a SimpliSafe
+> system or account at hand. If something does not work as described, please
+> open an issue on
+> [github.com/guim31/gladys-simplisafe/issues](https://github.com/guim31/gladys-simplisafe/issues)
+> with the integration logs (`LOG_LEVEL=debug`).
+>
+> This integration is not affiliated with SimpliSafe. SimpliSafe is a
+> trademark of SimpliSafe, Inc.
 
-Six demo devices show up after installation: a weather station (real data
-from Open-Meteo), a switch, a dimmable light, a smart plug with power
-metering, a motion sensor and a camera.
+## What you need
 
-## Configuration
+- A **SimpliSafe 3** system (the current generation, sold since 2018) and the
+  **SimpliSafe account** of the app. The free plan works for the states; arming
+  and disarming remotely need a plan that allows remote control.
+- **Two-step verification** turned on for the account (SimpliSafe app,
+  Settings): without it, SimpliSafe never gives the sign-in code the
+  integration needs (this is what Home Assistant users found out).
+- A **computer** with Chrome or Edge for the sign-in (once).
+- Gladys **5.1 or later**, with Internet access.
 
-1. Open the **Configuration** tab of the integration.
-2. Set the **latitude** and **longitude** the demo weather station should
-   observe (they default to Paris), and pick your temperature unit.
-   The **refresh interval** sets how often the weather station and the
-   plug's power are read: every 5 minutes by default, every minute at most.
-3. Save: the devices appear in the **Discovery** tab, ready to be added.
+## Set up
 
-The **Prefer the local connection** toggle drives the demo plug: it reports
-the channel it actually uses as a badge (local or cloud), with an orange dot
-when it runs degraded (local refused, cloud fallback).
+Open **Integrations → SimpliSafe → Configuration**, choose the options below and
+save, then sign in. Open the **Discover** tab and add the devices you want.
 
-## Actions
+### Sign in
 
-- **Test the weather provider** — performs a live request to Open-Meteo and
-  shows the current temperature and humidity under the button.
-- **Identify a device** — pick one of your devices in the list and it will
-  signal itself (the demo light "blinks" in the logs).
+SimpliSafe signs in through its own page, which then sends the browser to an
+address only the mobile app opens (`com.simplisafe.mobile://…`). The browser
+shows nothing, but the address appears in its developer tools: that is what you
+copy into Gladys. Gladys never sees your password.
 
-## Scenes
+1. Click **Connect** next to **SimpliSafe account**: the SimpliSafe sign-in page
+   opens in a new tab. In that tab, open the developer tools (F12, or
+   Cmd+Option+I on a Mac) on the **Console** tab.
+2. Sign in with the e-mail address and password of the SimpliSafe app, then
+   confirm the sign-in (code or link sent by e-mail or SMS).
+3. The page then seems to do nothing: that is expected. In the console, a red
+   line says something like
+   `Failed to launch 'com.simplisafe.mobile://auth.simplisafe.com/ios/com.simplisafe.mobile/callback?code=…'`.
+   Copy that line, or only the address.
+4. Within a few minutes, paste it in the **Finish the sign-in** action at the
+   bottom of the configuration page and run it. The answer lists the systems
+   found.
 
-The integration adds its own cards to the scene editor (Gladys 5.1 or
-later), under the **Integrations** category:
+Nothing in the console? Open the **Network** tab before signing in: the last
+line, in red, has the address in its `Location` header. Already signed in to
+SimpliSafe in this browser, the page may skip straight to the end: open a new
+private window and start again from **Connect**. A code works once and for a
+few minutes; each **Connect** makes a new page, and only the code of the last
+one works.
 
-- **Motion detected** (trigger) — starts the scene when a demo motion sensor
-  sees something move. Optionally pick the sensor and what moved (person,
-  animal); left empty, any detection matches. The following actions can
-  read what moved with `{{triggerEvent.data.target}}`.
-- **Identify a device** (action) — makes the chosen device signal itself.
-  It returns whether the device could signal itself, so the following
-  actions can depend on it.
+### Settings
+
+- **SimpliSafe account**: the **Connect** button and the state of the link.
+- **Arming from Gladys**:
+  - _Off (state only)_, the default: Gladys shows the state of the alarm and
+    never changes it;
+  - _Arm only_: the widget and the scene action can arm (home, away), never
+    disarm;
+  - _Arm and disarm_: anyone using your Gladys dashboards and scenes can also
+    disarm. Disarming from the widget asks for a confirmation.
+
+  Why off by default: with professional monitoring, an alarm armed by mistake
+  while someone is home calls the monitoring center, and in many towns a false
+  alarm is fined; a disarm from a shared dashboard opens the house. The alarm
+  state is never a switch: no voice assistant and no "device value" scene can
+  change it, only the widget and the action below.
+
+- **Allow unlocking the Smart Lock**: off by default. Gladys can always lock the
+  door; unlocking needs this option.
+- **Sensor reading**: how often the systems, sensors and locks are read (30 s,
+  1, 2 or 5 minutes; 1 minute by default). Arming, alarms, the doorbell and the
+  locks arrive in real time anyway.
+- **Language of the device names**: the language of the names of the devices
+  and features. Gladys keeps the names chosen when a device is added.
+
+### Configuration actions
+
+- **Finish the sign-in**: see above.
+- **Test the connection**: lists the systems of the account. Nothing is armed
+  or disarmed.
+- **Sign out**: deletes the tokens stored by Gladys. The devices stay, without
+  new readings.
+
+## The devices
+
+### The system
+
+One device per base station, named after the location:
+
+- **Alarm state**: _Disarmed_, _Armed home_, _Armed away_, _Exit delay_,
+  _Entry delay_ or _Alarm_ (values `off`, `home`, `away`, `exit_delay`,
+  `entry_delay`, `alarm` in scenes). Read-only.
+- **Online**: the base station reaches the SimpliSafe cloud.
+- **Mains power**: 0 during a power outage (the base runs on its battery).
+- **Backup battery**: the value SimpliSafe reports for the backup battery,
+  believed to be in millivolts (around 5,000 for a charged battery).
+- **Alerts**: the latest message of the SimpliSafe app (power outage, sensor
+  error…), with their number when there are several, or "No alert".
+
+### Sensors
+
+One device per sensor, named "name in the app - kind":
+
+- Entry sensor: **Opening** (open or closed). Read at each reading, and set to
+  open at once by an alarm or a secret alert.
+- Motion sensor: **Motion**; glass break sensor: **Glass break**. SimpliSafe
+  keeps no state for them: they go to 1 for a minute when an alarm or a
+  **secret alert** names them, 0 otherwise. Set a secret alert on them in the
+  SimpliSafe app to see each detection, even disarmed.
+- Smoke detector: **Smoke** and **Tamper**; smoke and CO detector: **Smoke**,
+  **Carbon monoxide** and **Tamper**; CO detector: **Carbon monoxide**.
+- Water sensor: **Water leak**.
+- Freeze sensor: **Temperature** (in °F, shown in your unit) and
+  **Temperature alert** (outside the limits set in the app).
+- Keypad, key fob, panic button, sirens: no detection.
+- Every sensor: **Low battery** and **Online**.
+
+What is reliable: the base station follows entry sensors, smoke, CO, water and
+freeze sensors, and the integration reads them at each **Sensor reading**
+(asking the base station for fresh values, as Home Assistant does). Motion and
+glass break only show through events.
+
+### Smart Lock
+
+**Lock** (lock or unlock, see the option above), **Lock state** (locked,
+unlocked, error when the bolt is jammed), **Low battery**, **Low keypad
+battery** and **Online**.
+
+### Cameras and doorbells
+
+**Picture**: the picture of the last motion or ring when SimpliSafe gives one,
+or a live picture of a wired first-generation SimpliCam whose privacy shutter
+is open in the current mode (a picture never opens a shutter, nor wakes a
+battery camera). **Motion** (1 for a minute after a motion), **Doorbell** (on a
+doorbell: 1 for a few seconds after a ring) and **Online**.
 
 ## Dashboard
 
-Add the **Demo status** widget to a dashboard: it shows the live
-temperature of the weather station and the power of the office plug, the
-connection the plug currently uses (orange when degraded) and the observed
-location. Its **Identify the light** button makes the demo light signal
-itself.
+The **SimpliSafe alarm** widget shows the state of the alarm, the base station,
+the power, the open entries, the low batteries and the alerts, and the buttons
+**Arm home**, **Arm away** and **Disarm** that **Arming from Gladys** allows.
+The current mode is marked by a check icon. Choose the system in the widget
+settings when the account has several.
+
+## Scenes
+
+### Triggers
+
+- **SimpliSafe alarm triggered**: the alarm went off. Filter by system and kind
+  (burglary, fire, carbon monoxide, water, freeze, panic). Variables: the kind,
+  the sensor name.
+- **SimpliSafe armed or disarmed**: from the app, a keypad, a key fob or
+  Gladys. Filter by system, new mode and where from. Variables: the mode,
+  where from, the name of the PIN when SimpliSafe gives it (e.g. "Master PIN").
+- **SimpliSafe doorbell pressed**: filter by doorbell. The camera image is the
+  picture of the ring when SimpliSafe gives one.
+
+The **Alarm state** feature also works as a device trigger; the triggers above
+add the kind of alarm, who armed, and the ring.
+
+### Actions
+
+- **Arm or disarm SimpliSafe**: arms (home, away) or disarms, as far as
+  **Arming from Gladys** allows. Output: the state after the command
+  (`exit_delay` when the system has an exit delay).
+- The Smart Lock is a regular lock device: "set the value" of **Lock**.
+
+### Scene ideas
+
+- **SimpliSafe alarm triggered** → turn every light on and send the camera
+  picture by message.
+- **SimpliSafe armed or disarmed**, new mode _Armed away_ → turn off the
+  heating and the lights; mode _Disarmed_ from the keypad → turn on the
+  hallway light.
+- **SimpliSafe doorbell pressed** → send the doorbell picture to your phone.
+- Every evening at 11 pm, if the alarm state is _Disarmed_ → **Arm or disarm
+  SimpliSafe** (_Armed home_), with "Arm only".
+
+## Refresh and limits of the cloud
+
+The SimpliSafe API is the unofficial API of the apps: no published quota. The
+integration reads every minute by default (Home Assistant: every 30 s), only
+the systems that have a device in Gladys, the base station settings every 10
+minutes, and listens to the WebSocket for the rest. When SimpliSafe answers
+403 (how it refuses a client that asks too often), the reads pause 1 minute,
+then twice as long each time, up to 2 hours. Right after an arming, a system
+with a Smart Lock is left alone for 20 s: SimpliSafe has a bug where the base
+station then announces that the lock is not responding.
 
 ## Troubleshooting
 
-The integration logs everything it does: check the integration logs from the
-Gladys UI (or `docker logs` on the host) with `LOG_LEVEL=debug` for the full
-detail.
+- **"Not signed in"**: do the sign-in above. **"SimpliSafe refused the saved
+  sign-in"**: the password changed, or the account signed out every device:
+  sign in again.
+- **"SimpliSafe refused the code"**: the code was already used, is older than a
+  few minutes, or comes from an earlier **Connect**: click **Connect** again.
+- **No code in the console**: check that two-step verification is on, use Chrome
+  or Edge, a private window, and the Network tab.
+- **"The SimpliSafe plan of this system does not allow remote control"**: the
+  plan does not include arming from the app.
+- **A sensor stays on "no recent value"**: SimpliSafe does not report this
+  kind of sensor (motion, glass break) until an event.
+- Logs: **Integrations → SimpliSafe → Logs**; with `LOG_LEVEL=debug` for every
+  read and event. No token, code, address or PIN name is ever written.
+
+## Limits
+
+- Developed without the hardware: the behaviour is that of the libraries it
+  follows, checked against their recorded answers.
+- SimpliSafe 2 systems (before 2018) are listed but not supported.
+- No live video, no siren command, no PIN management, no change of the system
+  settings (volumes, delays).
+- The cameras of the newest generation stream through another service: they
+  only show the picture of their events.
+- An event missed while the WebSocket reconnects does not fire its trigger; the
+  states catch up at the next reading.
+- The **Backup battery** value is the raw value of SimpliSafe.
