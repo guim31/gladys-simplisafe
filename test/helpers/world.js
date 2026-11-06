@@ -37,6 +37,19 @@ export function createClock(start = Date.UTC(2026, 9, 14, 12, 0, 0)) {
 }
 
 /** Let the handlers, the fake network and the fake socket settle. */
+/**
+ * Wait until `check()` is true (polled every 10 ms), at most `timeoutMs`: a fixed sleep was too
+ * short on a busy CI runner (main red on 2026-11-06 without any code change).
+ */
+export async function until(check, timeoutMs = 2000) {
+  const end = Date.now() + timeoutMs;
+  while (!check()) {
+    if (Date.now() > end) return false;
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  return true;
+}
+
 export async function settle(rounds = 40) {
   for (let i = 0; i < rounds; i += 1) {
     await new Promise((resolve) => setImmediate(resolve));

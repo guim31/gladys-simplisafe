@@ -23,6 +23,7 @@ import {
   sensorIds,
   settle,
   systemIds,
+  until,
 } from './helpers/world.js';
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -245,9 +246,7 @@ test('a camera that rings is a doorbell from then on, even after a restart', asy
     discovered(w, unknown.device).features.map((f) => f.external_id.split(':').at(-1));
   assert.ok(!features().includes('ring'));
   w.socket.push(eventData({ eventCid: 1458, sensorSerial: '1234567891' }));
-  await sleep(30);
-  await settle();
-  assert.ok(features().includes('ring'));
+  assert.ok(await until(() => features().includes('ring')));
   assert.deepEqual(saved(w).doorbells, ['1234567891']);
   await w.app.stop();
   // The same /data (its rotated token and the doorbell), the same cloud.
